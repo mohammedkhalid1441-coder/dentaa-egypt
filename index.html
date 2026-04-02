@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dento Egypt</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+body{background:#f5f5f3}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:210px;background:#fff;border-right:1px solid #e5e5e5;display:flex;flex-direction:column;padding:16px 0;flex-shrink:0}
+.logo{padding:0 16px 16px;font-size:15px;font-weight:600;border-bottom:1px solid #e5e5e5;margin-bottom:8px}
+.logo small{font-size:11px;color:#888;display:block;font-weight:400}
+.nav{padding:9px 16px;font-size:13px;cursor:pointer;color:#666;border-right:3px solid transparent;display:flex;align-items:center;gap:8px}
+.nav:hover,.nav.active{background:#f5f5f5;color:#111}
+.nav.active{font-weight:600;border-right-color:#1D9E75}
+.user-bar{margin-top:auto;padding:12px 16px;border-top:1px solid #e5e5e5;font-size:12px;color:#888;display:flex;align-items:center;justify-content:space-between}
+.main{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}.page.active{display:block}
+h2{font-size:18px;font-weight:600;margin-bottom:20px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat{background:#fff;border-radius:8px;padding:14px;border:1px solid #e5e5e5}
+.stat-l{font-size:12px;color:#888;margin-bottom:6px}
+.stat-v{font-size:22px;font-weight:600}
+.card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:16px;margin-bottom:16px}
+.ct{font-size:14px;font-weight:600;margin-bottom:14px}
+table{width:100%;font-size:13px;border-collapse:collapse}
+th{text-align:left;padding:8px 10px;color:#888;border-bottom:1px solid #e5e5e5;font-weight:500}
+td{padding:9px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.g{background:#E1F5EE;color:#0F6E56}.a{background:#FAEEDA;color:#854F0B}.r{background:#FCEBEB;color:#A32D2D}
+.btn{padding:7px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:13px;cursor:pointer}
+.btn:hover{background:#f5f5f5}
+.btn-p{background:#1D9E75;color:#fff;border-color:#1D9E75}.btn-p:hover{background:#0F6E56}
+.btn-d{color:#A32D2D;border-color:#fca5a5}.btn-d:hover{background:#FCEBEB}
+.btn-sm{padding:4px 10px;font-size:12px}
+.tb{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#fff;color:#111}
+input:focus,select:focus{border-color:#1D9E75}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:12px;color:#888}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:flex-start;justify-content:center;padding-top:60px}
+.ov.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:20px;width:480px;max-width:95vw;max-height:82vh;overflow-y:auto}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:16px}
+.mf{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.av{width:30px;height:30px;border-radius:50%;background:#E1F5EE;color:#0F6E56;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.lk{color:#1D9E75;cursor:pointer;text-decoration:underline}
+.empty{color:#aaa;font-size:13px;text-align:center;padding:24px}
+.wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f3}
+.box{background:#fff;border-radius:16px;padding:40px;width:400px;max-width:95vw;border:1px solid #e5e5e5;text-align:center}
+.box.setup{border:2px dashed #1D9E75;max-width:480px}
+.box h2{color:#1D9E75;margin-bottom:8px}
+.box p{color:#888;font-size:13px;margin-bottom:20px;line-height:1.6}
+.fld{text-align:left;margin-bottom:12px}
+.fld label{font-size:12px;color:#888;display:block;margin-bottom:4px}
+.err{color:#A32D2D;font-size:12px;margin-top:8px;min-height:18px}
+.sr{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
+.sr:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="setup">
+  <div class="box setup">
+    <h2>Dento Egypt</h2>
+    <p>Connect your Supabase database. Find keys at<br>supabase.com → Settings → API</p>
+    <div class="fld"><label>Supabase Project URL</label><input id="su" placeholder="https://xxxxx.supabase.co"></div>
+    <div class="fld"><label>Anon / Public Key</label><input id="sk" placeholder="eyJhbGci..."></div>
+    <button class="btn btn-p" style="width:100%;margin-top:4px" onclick="connect()">Connect &amp; Launch</button>
+    <p style="margin-top:12px;font-size:11px;color:#aaa">Keys saved in your browser only.</p>
+  </div>
+</div>
+
+<div class="wrap" id="auth" style="display:none">
+  <div class="box">
+    <h2>Dento Egypt</h2>
+    <p>Sign in to access the clinic</p>
+    <div class="fld"><label>Email</label><input type="email" id="lemail" placeholder="staff@clinic.com"></div>
+    <div class="fld"><label>Password</label><input type="password" id="lpass" placeholder="Password" onkeydown="if(event.key==='Enter')login()"></div>
+    <div class="err" id="lerr"></div>
+    <button class="btn btn-p" style="width:100%;margin-top:4px" onclick="login()">Sign In</button>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e5e5e5">
+      <div style="font-size:12px;color:#888;margin-bottom:8px">New staff member?</div>
+      <button class="btn btn-sm" style="width:100%" onclick="showReg()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="reg" style="display:none">
+  <div class="box">
+    <h2>Create Account</h2>
+    <p>Register as a clinic staff member</p>
+    <div class="fld"><label>Full Name</label><input id="rname" placeholder="Dr. Ahmed"></div>
+    <div class="fld"><label>Email</label><input type="email" id="remail" placeholder="staff@clinic.com"></div>
+    <div class="fld"><label>Password (min 6 chars)</label><input type="password" id="rpass" placeholder="Password"></div>
+    <div class="err" id="rerr"></div>
+    <button class="btn btn-p" style="width:100%;margin-top:4px" onclick="register()">Create Account</button>
+    <button class="btn btn-sm" style="width:100%;margin-top:8px" onclick="showLogin()">Back to Sign In</button>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none">
+<div class="sidebar">
+  <div class="logo">Dento Egypt<small>Clinic Manager</small></div>
+  <div class="nav active" onclick="go('dashboard')">&#9783; Dashboard</div>
+  <div class="nav" onclick="go('patients')">&#9998; Patients</div>
+  <div class="nav" onclick="go('appointments')">&#128197; Appointments</div>
+  <div class="nav" onclick="go('payments')">&#128181; Payments</div>
+  <div class="nav" onclick="go('settings')">&#9881; Settings</div>
+  <div class="user-bar">
+    <span id="uname" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px"></span>
+    <button class="btn btn-sm btn-d" onclick="logout()" style="padding:3px 8px;font-size:11px">Out</button>
+  </div>
+</div>
+<div class="main">
+  <div class="page active" id="page-dashboard">
+    <h2>Today's Overview</h2>
+    <div class="stats">
+      <div class="stat"><div class="stat-l">Total Patients</div><div class="stat-v" id="sp">0</div></div>
+      <div class="stat"><div class="stat-l">Today's Appointments</div><div class="stat-v" id="sa">0</div></div>
+      <div class="stat"><div class="stat-l">Monthly Revenue</div><div class="stat-v" id="sr">0 EGP</div></div>
+      <div class="stat"><div class="stat-l">Pending Payments</div><div class="stat-v" id="spp">0</div></div>
+    </div>
+    <div class="card"><div class="ct">Today's Schedule</div><div id="tlist"><div class="empty">Loading...</div></div></div>
+  </div>
+
+  <div class="page" id="page-patients">
+    <div class="tb"><h2 style="margin:0">Patients</h2><button class="btn btn-p" onclick="openM('patient')">+ Add Patient</button></div>
+    <div class="card">
+      <input id="srch" placeholder="Search by name or phone..." oninput="rPat()" style="margin-bottom:12px">
+      <table><thead><tr><th>Name</th><th>Phone</th><th>Age</th><th>Status</th><th>Actions</th></tr></thead><tbody id="ptb"></tbody></table>
+    </div>
+  </div>
+
+  <div class="page" id="page-profile">
+    <div onclick="go('patients')" style="color:#888;font-size:13px;cursor:pointer;margin-bottom:16px">&#8592; Back to Patients</div>
+    <div id="ph" style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #e5e5e5"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card"><div class="ct">Treatment History</div><div id="phist"></div></div>
+      <div class="card"><div class="ct">Invoices</div><div id="pinv"></div></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-appointments">
+    <div class="tb"><h2 style="margin:0">Appointments</h2><button class="btn btn-p" onclick="openM('appt')">+ New Appointment</button></div>
+    <div class="card"><table><thead><tr><th>Date</th><th>Time</th><th>Patient</th><th>Treatment</th><th>Doctor</th><th>Status</th><th>Actions</th></tr></thead><tbody id="atb"></tbody></table></div>
+  </div>
+
+  <div class="page" id="page-payments">
+    <div class="tb"><h2 style="margin:0">Payments</h2><button class="btn btn-p" onclick="openM('payment')">+ New Invoice</button></div>
+    <div class="card"><table><thead><tr><th>Invoice</th><th>Patient</th><th>Treatment</th><th>Amount</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="pytb"></tbody></table></div>
+  </div>
+
+  <div class="page" id="page-settings">
+    <h2>Settings</h2>
+    <div class="card">
+      <div class="ct">Doctors</div>
+      <div id="doclist"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input id="newdoc" placeholder="e.g. Dr. Sara Ahmed" style="flex:1">
+        <button class="btn btn-p" onclick="addDoc()">Add Doctor</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Clinic Info</div>
+      <div class="fg">
+        <div class="f"><label>Clinic Name</label><input id="cname" onchange="saveSetting('cn',this.value)"></div>
+        <div class="f"><label>Phone</label><input id="cphone" onchange="saveSetting('cp',this.value)"></div>
+        <div class="f" style="grid-column:1/-1"><label>Address</label><input id="caddr" onchange="saveSetting('ca',this.value)"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Database</div>
+      <div style="font-size:13px;color:#888;margin-bottom:12px">Connected: <strong style="color:#111" id="dburl"></strong></div>
+      <button class="btn btn-sm btn-d" onclick="resetDB()">Disconnect &amp; Change Database</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- MODALS -->
+<div class="ov" id="ov-patient"><div class="modal">
+  <h3 id="mtp">Add Patient</h3><input type="hidden" id="pid">
+  <div class="fg">
+    <div class="f"><label>First Name *</label><input id="pfn"></div>
+    <div class="f"><label>Last Name *</label><input id="pln"></div>
+    <div class="f"><label>Phone</label><input id="pph"></div>
+    <div class="f"><label>Age</label><input type="number" id="page" min="1" max="120"></div>
+    <div class="f"><label>Status</label><select id="pst"><option>Active</option><option>Inactive</option></select></div>
+    <div class="f" style="grid-column:1/-1"><label>Notes</label><textarea id="pnotes" rows="2"></textarea></div>
+  </div>
+  <div id="perr" style="color:#A32D2D;font-size:12px;margin-top:8px;display:none">Please enter first and last name.</div>
+  <div class="mf"><button class="btn" onclick="closeM('patient')">Cancel</button><button class="btn btn-p" onclick="savePat()">Save Patient</button></div>
+</div></div>
+
+<div class="ov" id="ov-appt"><div class="modal">
+  <h3 id="mta">New Appointment</h3><input type="hidden" id="aid">
+  <div class="fg">
+    <div class="f"><label>Patient *</label><select id="apat"></select></div>
+    <div class="f"><label>Doctor</label><select id="adoc"></select></div>
+    <div class="f"><label>Date</label><input type="date" id="adate"></div>
+    <div class="f"><label>Time</label><select id="atime"><option>09:00</option><option>09:30</option><option>10:00</option><option>10:30</option><option>11:00</option><option>11:30</option><option>12:00</option><option>14:00</option><option>14:30</option><option>15:00</option><option>15:30</option><option>16:00</option></select></div>
+    <div class="f" style="grid-column:1/-1"><label>Treatment</label><select id="atreat"><option>Routine Checkup</option><option>Teeth Cleaning</option><option>Filling</option><option>Root Canal</option><option>Extraction</option><option>Crown</option><option>Braces Adjustment</option><option>Whitening</option></select></div>
+    <div class="f" style="grid-column:1/-1"><label>Status</label><select id="ast"><option>Pending</option><option>Confirmed</option><option>Cancelled</option></select></div>
+  </div>
+  <div class="mf"><button class="btn" onclick="closeM('appt')">Cancel</button><button class="btn btn-p" onclick="saveAppt()">Save Appointment</button></div>
+</div></div>
+
+<div class="ov" id="ov-payment"><div class="modal">
+  <h3 id="mtpy">New Invoice</h3><input type="hidden" id="pyid">
+  <div class="fg">
+    <div class="f"><label>Patient *</label><select id="pypat"></select></div>
+    <div class="f"><label>Treatment</label><select id="pytreat"><option>Routine Checkup</option><option>Teeth Cleaning</option><option>Filling</option><option>Root Canal</option><option>Extraction</option><option>Crown</option><option>Braces Adjustment</option><option>Whitening</option></select></div>
+    <div class="f"><label>Amount (EGP) *</label><input type="number" id="pyamt" min="0"></div>
+    <div class="f"><label>Status</label><select id="pyst"><option>Paid</option><option>Pending</option><option>Partial</option></select></div>
+  </div>
+  <div class="mf"><button class="btn" onclick="closeM('payment')">Cancel</button><button class="btn btn-p" onclick="savePay()">Save Invoice</button></div>
+</div></div>
+
+<div class="ov" id="ov-confirm"><div class="modal" style="width:320px">
+  <h3>Confirm Delete</h3>
+  <p id="cmsg" style="font-size:13px;color:#666;margin:12px 0"></p>
+  <div class="mf"><button class="btn" onclick="closeM('confirm')">Cancel</button><button class="btn btn-d" onclick="doDel()">Delete</button></div>
+</div></div>
+
+<script>
+let sb,Ps=[],As=[],Pays=[],profId=null,delCb=null,DOCS=['Dr. Ahmed Samy','Dr. Hana Nour','Dr. Omar Fares'],CU=null;
+const td=()=>new Date().toISOString().slice(0,10);
+const ini=(a='',b='')=>(a[0]||'')+(b[0]||'');
+const pn=id=>{const p=Ps.find(x=>x.id===id);return p?p.first_name+' '+p.last_name:'Unknown'};
+const po=id=>Ps.find(x=>x.id===id);
+const bdg=s=>{const m={Active:'g',Inactive:'a',Confirmed:'g',Pending:'a',Cancelled:'r',Paid:'g',Partial:'a'};return'<span class="badge '+( m[s]||'g')+'">'+s+'</span>'};
+const $=id=>document.getElementById(id);
+
+function connect(){
+  let u=$('su').value.trim(),k=$('sk').value.trim();
+  if(!u||!k)return alert('Enter both URL and Key');
+  if(!u.startsWith('http'))u='https://'+u;
+  if(!u.includes('.supabase.co'))u+='.supabase.co';
+  localStorage.setItem('du',u);localStorage.setItem('dk',k);
+  initSB(u,k);
+}
+function resetDB(){localStorage.removeItem('du');localStorage.removeItem('dk');location.reload();}
+function initSB(u,k){
+  sb=supabase.createClient(u,k);
+  $('dburl').textContent=u.replace('https://','').replace('.supabase.co','');
+  $('setup').style.display='none';
+  checkAuth();
+}
+async function checkAuth(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){CU=session.user;showApp();}else{showLogin();}
+}
+function showLogin(){$('auth').style.display='flex';$('reg').style.display='none';$('app').style.display='none';}
+function showReg(){$('auth').style.display='none';$('reg').style.display='flex';}
+async function login(){
+  const email=$('lemail').value.trim(),pass=$('lpass').value;
+  $('lerr').textContent='';
+  if(!email||!pass)return $('lerr').textContent='Enter email and password';
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error)return $('lerr').textContent=error.message;
+  CU=data.user;showApp();
+}
+async function register(){
+  const name=$('rname').value.trim(),email=$('remail').value.trim(),pass=$('rpass').value;
+  $('rerr').textContent='';
+  if(!name||!email||!pass)return $('rerr').textContent='Fill all fields';
+  if(pass.length<6)return $('rerr').textContent='Password must be at least 6 characters';
+  const{error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
+  if(error)return $('rerr').textContent=error.message;
+  $('rerr').style.color='#0F6E56';
+  $('rerr').textContent='Account created! Check your email to confirm, then sign in.';
+}
+async function logout(){await sb.auth.signOut();showLogin();}
+function showApp(){
+  $('auth').style.display='none';$('reg').style.display='none';$('app').style.display='flex';
+  $('uname').textContent=CU?.user_metadata?.full_name||CU?.email||'Staff';
+  const sd=localStorage.getItem('docs');if(sd)DOCS=JSON.parse(sd);
+  load();
+}
+async function load(){
+  const[pr,ar,pyr]=await Promise.all([
+    sb.from('patients').select('*').order('created_at',{ascending:false}),
+    sb.from('appointments').select('*').order('date').order('time'),
+    sb.from('payments').select('*').order('date',{ascending:false})
+  ]);
+  if(pr.data)Ps=pr.data;if(ar.data)As=ar.data;if(pyr.data)Pays=pyr.data;
+  rDash();
+}
+function go(pg,id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  $('page-'+pg).classList.add('active');
+  document.querySelectorAll('.nav').forEach(n=>{if(n.getAttribute('onclick')==="go('"+pg+"')")n.classList.add('active');});
+  if(pg==='patients')rPat();
+  if(pg==='appointments')rApt();
+  if(pg==='payments')rPay();
+  if(pg==='dashboard')rDash();
+  if(pg==='settings')rSettings();
+  if(pg==='profile'&&id){profId=id;rProf();}
+}
+function rSettings(){
+  rDocList();
+  $('cname').value=localStorage.getItem('cn')||'Dento Egypt';
+  $('cphone').value=localStorage.getItem('cp')||'';
+  $('caddr').value=localStorage.getItem('ca')||'';
+}
+function saveSetting(k,v){localStorage.setItem(k,v);}
+function rDocList(){
+  $('doclist').innerHTML=DOCS.map((d,i)=>'<div class="sr"><span style="flex:1">'+d+'</span><button class="btn btn-sm btn-d" onclick="removeDoc('+i+')">Remove</button></div>').join('');
+}
+function addDoc(){
+  const v=$('newdoc').value.trim();if(!v)return;
+  DOCS.push(v);$('newdoc').value='';localStorage.setItem('docs',JSON.stringify(DOCS));rDocList();fillDocSel();
+}
+function removeDoc(i){
+  if(DOCS.length<=1)return alert('Must keep at least one doctor');
+  DOCS.splice(i,1);localStorage.setItem('docs',JSON.stringify(DOCS));rDocList();fillDocSel();
+}
+function rDash(){
+  $('sp').textContent=Ps.length;
+  const t=As.filter(a=>a.date===td());
+  $('sa').textContent=t.length;
+  $('sr').textContent=Pays.filter(p=>p.status==='Paid').reduce((s,p)=>s+Number(p.amount),0).toLocaleString()+' EGP';
+  $('spp').textContent=Pays.filter(p=>p.status==='Pending').length;
+  const el=$('tlist');
+  el.innerHTML=t.length?t.map(a=>'<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;border:1px solid #e5e5e5;border-radius:8px;margin-bottom:8px;font-size:13px"><span style="color:#888;font-size:12px;min-width:46px">'+a.time+'</span><div class="av">'+ini(...pn(a.patient_id).split(' '))+'</div><span style="flex:1">'+pn(a.patient_id)+'</span><span style="color:#888;font-size:12px">'+a.treatment+'</span>'+bdg(a.status)+'</div>').join(''):'<div class="empty">No appointments today</div>';
+}
+function rPat(){
+  const q=($('srch').value||'').toLowerCase();
+  const list=Ps.filter(p=>(p.first_name+' '+p.last_name).toLowerCase().includes(q)||(p.phone||'').includes(q));
+  $('ptb').innerHTML=list.map(p=>'<tr><td><span class="lk" onclick="go('profile',''+p.id+'')" style="display:flex;align-items:center;gap:8px"><div class="av">'+ini(p.first_name,p.last_name)+'</div>'+p.first_name+' '+p.last_name+'</span></td><td>'+(p.phone||'')+'</td><td>'+(p.age||'')+'</td><td>'+bdg(p.status)+'</td><td><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="editPat(''+p.id+'')">Edit</button><button class="btn btn-sm btn-d" onclick="askDel('patients',''+p.id+'','Delete this patient?')">Delete</button></div></td></tr>').join('');
+}
+function rProf(){
+  const p=po(profId);if(!p)return;
+  $('ph').innerHTML='<div class="av" style="width:48px;height:48px;font-size:15px">'+ini(p.first_name,p.last_name)+'</div><div><div style="font-size:16px;font-weight:600">'+p.first_name+' '+p.last_name+'</div><div style="font-size:13px;color:#888;margin-top:3px">'+(p.phone||'')+' · Age '+(p.age||'')+' · '+bdg(p.status)+'</div>'+(p.notes?'<div style="font-size:12px;color:#888;margin-top:6px">'+p.notes+'</div>':'')+'</div>';
+  const pa=As.filter(a=>a.patient_id===profId).sort((a,b)=>b.date.localeCompare(a.date));
+  $('phist').innerHTML=pa.length?pa.map((a,i)=>'<div style="display:flex;gap:12px;margin-bottom:14px;font-size:13px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:10px;height:10px;border-radius:50%;background:#1D9E75;margin-top:3px"></div>'+(i<pa.length-1?'<div style="width:1px;background:#e5e5e5;flex:1;margin-top:4px"></div>':'')+'</div><div><div style="font-weight:600">'+a.treatment+'</div><div style="font-size:12px;color:#888">'+a.date+' · '+a.doctor+'</div><div style="margin-top:3px">'+bdg(a.status)+'</div></div></div>').join(''):'<div class="empty">No treatments yet</div>';
+  const pp=Pays.filter(x=>x.patient_id===profId);
+  $('pinv').innerHTML=pp.length?pp.map(x=>'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px"><div><div style="font-weight:600">'+x.treatment+'</div><div style="font-size:12px;color:#888">'+x.date+'</div></div><div style="text-align:right"><div style="font-weight:600">'+Number(x.amount).toLocaleString()+' EGP</div>'+bdg(x.status)+'</div></div>').join(''):'<div class="empty">No invoices yet</div>';
+}
+function rApt(){
+  $('atb').innerHTML=As.map(a=>'<tr><td>'+a.date+'</td><td>'+a.time+'</td><td><span class="lk" onclick="go('profile',''+a.patient_id+'')">'+pn(a.patient_id)+'</span></td><td>'+a.treatment+'</td><td>'+a.doctor+'</td><td>'+bdg(a.status)+'</td><td><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="editApt(''+a.id+'')">Edit</button><button class="btn btn-sm btn-d" onclick="askDel('appointments',''+a.id+'','Delete this appointment?')">Delete</button></div></td></tr>').join('');
+}
+function rPay(){
+  $('pytb').innerHTML=Pays.map(p=>'<tr><td style="color:#888">#'+p.id.slice(-6).toUpperCase()+'</td><td><span class="lk" onclick="go('profile',''+p.patient_id+'')">'+pn(p.patient_id)+'</span></td><td>'+p.treatment+'</td><td style="font-weight:600">'+Number(p.amount).toLocaleString()+' EGP</td><td>'+bdg(p.status)+'</td><td>'+p.date+'</td><td><div style="display:flex;gap:6px"><button class="btn btn-sm" onclick="printI(''+p.id+'')">PDF</button><button class="btn btn-sm" onclick="editPay(''+p.id+'')">Edit</button><button class="btn btn-sm btn-d" onclick="askDel('payments',''+p.id+'','Delete invoice?')">Delete</button></div></td></tr>').join('');
+}
+function fillDocSel(){$('adoc').innerHTML=DOCS.map(d=>'<option>'+d+'</option>').join('');}
+function fillPatSel(){const o='<option value="">Select patient...</option>'+Ps.map(p=>'<option value="'+p.id+'">'+p.first_name+' '+p.last_name+'</option>').join('');$('apat').innerHTML=o;$('pypat').innerHTML=o;}
+function openM(t){fillPatSel();fillDocSel();$('adate').value=td();$('ov-'+t).classList.add('open');}
+function closeM(t){$('ov-'+t).classList.remove('open');}
+function editPat(id){
+  const p=po(id);
+  $('mtp').textContent='Edit Patient';$('pid').value=id;
+  $('pfn').value=p.first_name;$('pln').value=p.last_name;
+  $('pph').value=p.phone||'';$('page').value=p.age||'';
+  $('pst').value=p.status;$('pnotes').value=p.notes||'';
+  $('perr').style.display='none';
+  $('ov-patient').classList.add('open');
+}
+async function savePat(){
+  const fn=$('pfn').value.trim(),ln=$('pln').value.trim();
+  if(!fn||!ln){$('perr').style.display='block';return;}
+  $('perr').style.display='none';
+  const id=$('pid').value;
+  const data={first_name:fn,last_name:ln,phone:$('pph').value.trim(),age:parseInt($('page').value)||null,status:$('pst').value,notes:$('pnotes').value.trim()};
+  let res;
+  if(id){res=await sb.from('patients').update(data).eq('id',id);}
+  else{res=await sb.from('patients').insert([data]);}
+  if(res.error){alert('Error: '+res.error.message);return;}
+  $('pid').value='';$('mtp').textContent='Add Patient';
+  ['pfn','pln','pph','page','pnotes'].forEach(i=>$(i).value='');
+  closeM('patient');await load();rPat();
+}
+function editApt(id){
+  const a=As.find(x=>x.id===id);
+  fillPatSel();fillDocSel();
+  $('mta').textContent='Edit Appointment';$('aid').value=id;
+  $('apat').value=a.patient_id;$('adoc').value=a.doctor;
+  $('adate').value=a.date;$('atime').value=a.time;
+  $('atreat').value=a.treatment;$('ast').value=a.status;
+  $('ov-appt').classList.add('open');
+}
+async function saveAppt(){
+  const id=$('aid').value;
+  const data={patient_id:$('apat').value,doctor:$('adoc').value,date:$('adate').value,time:$('atime').value,treatment:$('atreat').value,status:$('ast').value};
+  if(!data.patient_id)return alert('Please select a patient');
+  if(id)await sb.from('appointments').update(data).eq('id',id);
+  else await sb.from('appointments').insert([data]);
+  $('aid').value='';$('mta').textContent='New Appointment';
+  closeM('appt');await load();rApt();
+}
+function editPay(id){
+  const p=Pays.find(x=>x.id===id);
+  fillPatSel();
+  $('mtpy').textContent='Edit Invoice';$('pyid').value=id;
+  $('pypat').value=p.patient_id;$('pytreat').value=p.treatment;
+  $('pyamt').value=p.amount;$('pyst').value=p.status;
+  $('ov-payment').classList.add('open');
+}
+async function savePay(){
+  const id=$('pyid').value,amt=parseFloat($('pyamt').value);
+  if(!$('pypat').value||!amt)return alert('Select a patient and enter an amount');
+  const data={patient_id:$('pypat').value,treatment:$('pytreat').value,amount:amt,status:$('pyst').value,date:td()};
+  if(id)await sb.from('payments').update(data).eq('id',id);
+  else await sb.from('payments').insert([data]);
+  $('pyid').value='';$('mtpy').textContent='New Invoice';
+  closeM('payment');await load();rPay();
+}
+function askDel(t,id,msg){$('cmsg').textContent=msg;delCb=async()=>{await sb.from(t).delete().eq('id',id);await load();rPat();rApt();rPay();rDash();};$('ov-confirm').classList.add('open');}
+async function doDel(){delCb&&await delCb();delCb=null;closeM('confirm');}
+function printI(id){
+  const p=Pays.find(x=>x.id===id),pat=po(p.patient_id);
+  const cn=localStorage.getItem('cn')||'Dento Egypt',ca=localStorage.getItem('ca')||'Cairo, Egypt',cp=localStorage.getItem('cp')||'';
+  const w=window.open('','_blank');
+  w.document.write('<html><head><title>Invoice</title><style>body{font-family:sans-serif;padding:40px;max-width:520px;margin:auto}h2{margin-bottom:4px}.sub{color:#888;font-size:13px;margin-bottom:24px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px}.tot{font-weight:700;font-size:16px}.badge{background:#E1F5EE;color:#0F6E56;padding:3px 10px;border-radius:20px;font-size:12px;display:inline-block;margin-top:12px}</style></head><body><h2>'+cn+'</h2><div class="sub">'+ca+(cp?' &middot; '+cp:'')+'</div><div class="row"><span>Invoice</span><span>#'+p.id.slice(-6).toUpperCase()+'</span></div><div class="row"><span>Date</span><span>'+p.date+'</span></div><div class="row"><span>Patient</span><span>'+(pat?pat.first_name+' '+pat.last_name:'')+'</span></div><div class="row"><span>Phone</span><span>'+(pat?.phone||'')+'</span></div><div class="row"><span>Treatment</span><span>'+p.treatment+'</span></div><div class="row tot"><span>Total</span><span>'+Number(p.amount).toLocaleString()+' EGP</span></div><span class="badge">'+p.status+'</span></body></html>');
+  w.document.close();w.focus();setTimeout(()=>w.print(),300);
+}
+window.onload=()=>{
+  const u=localStorage.getItem('du'),k=localStorage.getItem('dk');
+  if(u&&k){$('su').value=u;$('sk').value=k;initSB(u,k);}
+};
+</script>
+</body>
+</html>
